@@ -1,6 +1,8 @@
 package main
 
 import (
+	"fmt"
+	"log"
 	"net/http"
 	"strconv"
 	"time"
@@ -21,7 +23,7 @@ var dates = []date{
 func main() {
 	router := gin.Default()
 	router.GET("/dates", getDate)
-	router.GET("/dates/:year", getDaysByYear)
+	router.GET("/dates/:year", SearchYear)
 
 	router.Run("localhost:8080")
 }
@@ -30,21 +32,23 @@ func getDate(c *gin.Context) {
 	c.IndentedJSON(http.StatusOK, dates)
 }
 
-func getDaysByYear(c *gin.Context) {
-	t := time.Now().Year()
-
+func HandlerFunc(c *gin.Context) {
 	year, err := strconv.Atoi(c.Param("year"))
 	if err != nil {
-		c.IndentedJSON(http.StatusNotFound, gin.H{"message": "wrong year"})
+		log.Println(err)
 		return
 	}
+	result := SearchYear(year)
+	c.String(http.StatusOK, result)
+}
 
-	if year < t {
-		c.IndentedJSON(http.StatusOK, gin.H{"Days gone": (t - year) * 365})
-		return
+func SearchYear(year int) string {
+	now := time.Date(year, time.January, 1, 0, 0, 0, 0, time.UTC)
+	if year < time.Now().Year() {
+		daysGone := int64(time.Since(now).Hours()) / 24
+		return fmt.Sprintf("Days gone: %d", daysGone)
 	} else {
-		c.IndentedJSON(http.StatusOK, gin.H{"Days left": (year - t) * 365})
-		return
+		daysLeft := int64(time.Until(now).Hours()) / 24
+		return fmt.Sprintf("Days left: %d", daysLeft)
 	}
-	c.IndentedJSON(http.StatusNotFound, gin.H{"message": "wrong year"})
 }
